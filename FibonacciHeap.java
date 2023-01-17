@@ -67,22 +67,21 @@ public class FibonacciHeap {
 	 *
 	 */
 	public void deleteMin() {
-		HeapNode deletedNodePrev = min.getPrev();
 		HeapNode deletedNodeNext = min.getNext();
 		HeapNode deletedNodeChild = min.getChild();
-		if (deletedNodeChild != null) {
-			HeapNode childPrev = deletedNodeChild.getPrev();
-			deletedNodeNext.setPrev(childPrev, true);
-			deletedNodePrev.setNext(deletedNodeChild, true);
-
+		numOfTrees += this.min.deleteNode() - 1;
+		this.size--;
+		if (this.min == this.first && this.first.getChild() != null) {
+			this.first = deletedNodeChild;
 		}
-		min.deleteNode();
-		size--;
-		this.first = deletedNodeNext;
-		min = first;
+		else {
+			this.first = deletedNodeNext;
+		}
+		this.min = this.first;
 		HeapNode currentNode = first;
 		do {
 			this.setMin(currentNode);
+			currentNode.setMark(false);
 			currentNode = currentNode.getNext();
 		}
 		while (currentNode != first);
@@ -248,8 +247,6 @@ public class FibonacciHeap {
 		}
 		cutNode.cutNode();
 		this.insertFirst(cutNode, true);
-		numOfCuts++;
-		numOfTrees++;
 		cutNode.setMark(false);
 		if (parent.getMark()) {
 			this.cascadingCuts(parent);
@@ -342,18 +339,18 @@ public class FibonacciHeap {
 	}
 	
 	private void connectBuckets(HeapNode[] buckets) {
-		int firstNonNullIndex = 0;
+		int firstNonNullIndex = -1;
 		int lastNonNullIndex = 0;
 		for (int i = 0; i < buckets.length; i++) {
 			boolean noMoreNonNullIndexs = false;
 			if (buckets[i] != null) {
-				if (firstNonNullIndex == 0) {
+				if (firstNonNullIndex == -1) {
 					firstNonNullIndex = i;
 				}
 				for (int j = i + 1; j < buckets.length; j++) {
 					if (buckets[j] != null) {
 						buckets[i].setNext(buckets[j], true);
-						i = j;
+						i = j - 1;
 						lastNonNullIndex = j;
 						break;
 					}
@@ -399,35 +396,41 @@ public class FibonacciHeap {
 			this.key = key;
 		}
 		
-		public void deleteNode() {
-			if (parent != null) {
-				parent.setChild(child, true);
+		public int deleteNode() {
+			int numOfNewTrees = 0;
+			if (this.parent != null) {
+				this.parent.setChild(this.child, true);
 			}
-			if (child != null) {
-				HeapNode currChild = child;
+			if (this.child != null) {
+				HeapNode currChild = this.child;
 				do {
-					currChild.setParent(parent, true);
+					currChild.setParent(this.parent, true);
 					currChild = currChild.getNext();
-				}while(currChild != child);
+					numOfNewTrees++;
+				}while(currChild != this.child);
+				this.next.setPrev(this.child.getPrev(), true);
+				this.prev.setNext(this.child, true);
 			}
-			if (prev != next) {
-				next.setPrev(prev, true);
+			else {
+				this.next.setPrev(prev, true);
 			}
-			parent = null;
-			next = null;
-			prev = null;
-			child = null;
+			this.parent = null;
+			this.next = null;
+			this.prev = null;
+			this.child = null;
+			return numOfNewTrees;
 		}
 		
 		public void cutNode() {
-			this.parent.setRank(this.parent.getRank() - 1);
+			numOfCuts++;
+			this.parent.setRank(this.parent.getRank() - this.rank - 1);
 			this.mark = false;
 			if (this.next == this) {
 				this.parent.setChild(null, true);
 			}
 			else {
 				if (this.parent.getChild() == this) {
-					this.parent.setChild(this.next, true);
+					this.parent.setChild(this.next, false);
 				}
 				this.next.setPrev(this.prev, true);
 			}

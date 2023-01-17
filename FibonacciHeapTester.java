@@ -18,7 +18,7 @@ public class FibonacciHeapTester {
 		
 		//int[] nums = new int[] {81, 65, 18, 66, 71, 56, 77, 30, 31, 3};
 		
-		for (int i = 0; i < 50; i++) {
+		for (int i = 0; i < 10; i++) {
 			Random r = new Random();
 			int newKey = Math.abs(r.nextInt(1, 100));
 			while(seenInts.containsKey(newKey)) {
@@ -29,20 +29,43 @@ public class FibonacciHeapTester {
 			// fibHeap.insert(nums[i]);
 		}
 		
-		fibHeap.deleteMin();
+		FibonacciHeapTester.printHeap(fibHeap.getFirst());
 		
-		fibHeap.delete(fibHeap.getFirst().getNext().getChild().getNext());
+		System.out.println("----------------------------");
 		
 		fibHeap.deleteMin();
 		
 		FibonacciHeapTester.printHeap(fibHeap.getFirst());
+		
+		System.out.println("----------------------------");
+		
+		HeapNode nodeToBeDeleted = fibHeap.getFirst().getNext().getChild().getNext();
+		
+		System.out.println(nodeToBeDeleted.getKey());
+		
+		fibHeap.delete(fibHeap.getFirst().getNext().getChild().getNext());
+				
+		System.out.println("----------------------------");
+		
+		FibonacciHeapTester.printHeap(fibHeap.getFirst());
+		
+		System.out.println("----------------------------");
+
+		fibHeap.deleteMin();
+		
+		System.out.println("----------------------------");
+		
+		FibonacciHeapTester.printHeap(fibHeap.getFirst());
+		
+		System.out.println("----------------------------");
+		
+		System.out.println(fibHeap.size());
 		
 	}
 	
 	public static void printHeap(HeapNode node) {
 		HeapNode currNode = node;
 		do {
-			System.out.println(currNode.getKey());
 			HeapNode midCurrNode = currNode.getChild();
 			if (midCurrNode != null) {
 				System.out.println(currNode.getKey() + "|" + midCurrNode.getKey());
