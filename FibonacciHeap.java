@@ -122,7 +122,7 @@ public class FibonacciHeap {
 	 * 
 	 */
 	public int size() {
-		return this.size(); // should be replaced by student code
+		return this.size; // should be replaced by student code
 	}
 
 	/**
@@ -265,29 +265,32 @@ public class FibonacciHeap {
 	}
 	
 	private HeapNode[] toBuckets() {
-		HeapNode[] buckets = new HeapNode[(calcLogGROfN() + 1)];
+		HeapNode[] buckets = new HeapNode[(calcLogGROfN(size) + 1)];
 		for (int i = 0; i < buckets.length; i++) {
 			buckets[i] = null;
 		}
+		first.getPrev().setNext(null, true);
+		first.setPrev(null, true);
 		HeapNode nextTree = first;
 		HeapNode currentTree = null;
 		do{
 			currentTree = nextTree;
 			nextTree = nextTree.getNext();
-			int currentTreeRank = currentTree.getRank();
+			int currentTreeRank = calcLogGROfN(currentTree.getRank());
 			while (buckets[currentTreeRank] != null) {
 				currentTree = currentTree.link(buckets[currentTreeRank]);
 				buckets[currentTreeRank] = null;
-				currentTreeRank = currentTree.getRank();
+				currentTreeRank++;
 			}
-			buckets[currentTree.getRank()] = currentTree;
-		} while (nextTree != first);
+			buckets[currentTreeRank] = currentTree;
+		} while (nextTree != null);
 		return buckets;
 	}
 	
 	private FibonacciHeap fromBuckets(HeapNode[] buckets) {
 		FibonacciHeap consolidatedHeap = new FibonacciHeap();
 		numOfTrees = 0;
+		this.connectBuckets(buckets);
 		for (int i = buckets.length - 1; i >= 0; i--) {
 			if (buckets[i] != null) {
 				numOfTrees++;
@@ -305,7 +308,9 @@ public class FibonacciHeap {
 			size = nodeToInsert.getRank() + 1;
 		}
 		else {
-			first.getPrev().setNext(nodeToInsert, true);
+			if (first.getPrev() != nodeToInsert) {
+				first.getPrev().setNext(nodeToInsert, true);
+			}
 			first.setPrev(nodeToInsert, true);
 			this.first = nodeToInsert;
 			numOfTrees++;
@@ -318,8 +323,14 @@ public class FibonacciHeap {
 		}
 	}
 	
-	public int calcLogGROfN() {
-		return (int) (Math.log(size)/Math.log(GOLDEN_RATIO));
+	public int calcLogGROfN(int n) {
+		if (n == 0) {
+			return 0;
+		}
+		if (n == 1) {
+			return 1;
+		}
+		return (int) (Math.log(n)/Math.log(GOLDEN_RATIO));
 	}
 	
 	private void transformToAnotherHeap(FibonacciHeap otherHeap) {
@@ -328,6 +339,36 @@ public class FibonacciHeap {
 		this.size = otherHeap.size;
 		this.marked = otherHeap.marked;
 		this.numOfTrees = otherHeap.numOfTrees;
+	}
+	
+	private void connectBuckets(HeapNode[] buckets) {
+		int firstNonNullIndex = 0;
+		int lastNonNullIndex = 0;
+		for (int i = 0; i < buckets.length; i++) {
+			boolean noMoreNonNullIndexs = false;
+			if (buckets[i] != null) {
+				if (firstNonNullIndex == 0) {
+					firstNonNullIndex = i;
+				}
+				for (int j = i + 1; j < buckets.length; j++) {
+					if (buckets[j] != null) {
+						buckets[i].setNext(buckets[j], true);
+						i = j;
+						lastNonNullIndex = j;
+						break;
+					}
+					else if(j == buckets.length -1) {
+						noMoreNonNullIndexs = true;
+						lastNonNullIndex = i;
+						break;
+					}
+				}
+				if (noMoreNonNullIndexs) {
+					break;
+				}
+			}
+		}
+		buckets[lastNonNullIndex].setNext(buckets[firstNonNullIndex], true);
 	}
 
 	/**
@@ -363,9 +404,15 @@ public class FibonacciHeap {
 				parent.setChild(child, true);
 			}
 			if (child != null) {
-				child.setParent(parent, true);
+				HeapNode currChild = child;
+				do {
+					currChild.setParent(parent, true);
+					currChild = currChild.getNext();
+				}while(currChild != child);
 			}
-			next.setPrev(prev, true);
+			if (prev != next) {
+				next.setPrev(prev, true);
+			}
 			parent = null;
 			next = null;
 			prev = null;
@@ -374,27 +421,26 @@ public class FibonacciHeap {
 		
 		public void cutNode() {
 			this.parent.setRank(this.parent.getRank() - 1);
-			this.parent = null;
 			this.mark = false;
 			if (this.next == this) {
 				this.parent.setChild(null, true);
 			}
 			else {
-				this.parent.setChild(this.next, true);
+				if (this.parent.getChild() == this) {
+					this.parent.setChild(this.next, true);
+				}
 				this.next.setPrev(this.prev, true);
 			}
-			
+			this.parent = null;
 		}
 		
 		public HeapNode link(HeapNode otherNode) {
 			numOfLinks++;
 			if (otherNode.getKey() < this.key) {
 				otherNode.setNext(this.next, true);
-				otherNode.setPrev(this.prev, true);
 				if (otherNode.getChild() != null) {
-					otherNode.getChild().setParent(null, true);
 					this.setPrev(otherNode.getChild().getPrev(), true);
-					this.setNext(otherNode.getChild().getNext(), true);
+					this.setNext(otherNode.getChild(), true);
 				}
 				else {
 					this.setPrev(this, true);
@@ -404,10 +450,8 @@ public class FibonacciHeap {
 				return otherNode;
 			}
 			else {
-				this.setNext(otherNode.getNext(), true);
 				this.setPrev(otherNode.getPrev(), true);
 				if (child != null) {
-					this.child.setParent(null, true);
 					otherNode.setPrev(this.child.getPrev(), true);
 					otherNode.setNext(this.child, true);
 				}
